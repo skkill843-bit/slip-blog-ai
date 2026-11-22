@@ -22,13 +22,20 @@ jobs:
           SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
           echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
-          SDKMGR="$(command -v sdkmanager || find "$SDK_ROOT" -name sdkmanager -type f 2>/dev/null | head -n1 || true)"
-          if [ -n "$SDKMGR" ]; then
-            yes | "$SDKMGR" --licenses > /dev/null 2>&1 || true
-            "$SDKMGR" "platforms;android-36.1" "build-tools;36.0.0" "platform-tools" || "$SDKMGR" "platforms;android-36" "build-tools;36.0.0" "platform-tools" || true
-          else
-            echo "sdkmanager not found; relying on preinstalled SDK at $SDK_ROOT"
+          mkdir -p "$SDK_ROOT/licenses"
+          printf "\n24333f8a63b6825ea9c5514f83c2829b004d1fee\nd56f5187479451eabf01fb78af6dfcb131a6481e" > "$SDK_ROOT/licenses/android-sdk-license"
+          printf "\n84831b9409646a918e30573bab4c9c91346d8abd" > "$SDK_ROOT/licenses/android-sdk-preview-license"
+          printf "\n33b6a2b64607f11b759f320ef9dff4ae5c47d97a" > "$SDK_ROOT/licenses/google-gdk-license"
+          printf "\n601085b94cd77f0b54ff86406957099ebe79c4d6" > "$SDK_ROOT/licenses/android-googletv-license"
+          SDKMGR="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMGR" ]; then
+            SDKMGR="$(command -v sdkmanager || find "$SDK_ROOT" -name sdkmanager -type f 2>/dev/null | head -n1 || true)"
           fi
+          if [ -n "$SDKMGR" ]; then
+            yes | "$SDKMGR" --sdk_root="$SDK_ROOT" --licenses > /dev/null 2>&1 || true
+            "$SDKMGR" --sdk_root="$SDK_ROOT" "platforms;android-36.1" "build-tools;36.0.0" "platform-tools" || "$SDKMGR" --sdk_root="$SDK_ROOT" "platforms;android-36" "build-tools;36.0.0" "platform-tools" || true
+          fi
+          ls -la "$SDK_ROOT/platforms" || true
 
       - name: Prepare debug keystore
         run: |
@@ -50,7 +57,13 @@ jobs:
           gradle-version: '9.3.1'
 
       - name: Build Debug APK
-        run: gradle :app:assembleDebug --no-daemon --stacktrace
+        run: |
+          set -o pipefail
+          if ! gradle :app:assembleDebug --no-daemon --no-configuration-cache --console=plain --max-workers=2 -Dorg.gradle.jvmargs="-Xmx3g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" 2>&1 | tee gradle_build.log; then
+            echo "=== FAILURE SUMMARY ==="
+            grep -A 25 -E "FAILURE:|What went wrong:|e: file://" gradle_build.log || tail -n 60 gradle_build.log
+            exit 1
+          fi
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
