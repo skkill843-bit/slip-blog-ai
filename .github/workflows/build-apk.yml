@@ -17,28 +17,32 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Configure Android SDK 36.1 and accept licenses
+      - name: Configure Android SDK and accept licenses
         run: |
           SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
           echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
-          SDKMGR="$(command -v sdkmanager || find "$SDK_ROOT/cmdline-tools" -name sdkmanager -type f 2>/dev/null | head -n1)"
-          if [ -z "$SDKMGR" ]; then
-            echo "sdkmanager not found under $SDK_ROOT"
-            exit 1
+          SDKMGR="$(command -v sdkmanager || find "$SDK_ROOT" -name sdkmanager -type f 2>/dev/null | head -n1 || true)"
+          if [ -n "$SDKMGR" ]; then
+            yes | "$SDKMGR" --licenses > /dev/null 2>&1 || true
+            "$SDKMGR" "platforms;android-36.1" "build-tools;36.0.0" "platform-tools" || "$SDKMGR" "platforms;android-36" "build-tools;36.0.0" "platform-tools" || true
+          else
+            echo "sdkmanager not found; relying on preinstalled SDK at $SDK_ROOT"
           fi
-          yes | "$SDKMGR" --licenses > /dev/null 2>&1 || true
-          "$SDKMGR" "platforms;android-36.1" "build-tools;36.0.0" "platform-tools"
 
       - name: Prepare debug keystore
         run: |
           if [ -f debug.keystore.base64 ]; then
             base64 -d debug.keystore.base64 > debug.keystore
             echo "Decoded debug.keystore from debug.keystore.base64"
-          else
-            echo "debug.keystore.base64 not found!"
-            exit 1
+          elif [ ! -f debug.keystore ]; then
+            echo "debug.keystore.base64 not found in repo; generating CI debug.keystore..."
+            keytool -genkeypair -v -keystore debug.keystore \
+              -storepass android -alias androiddebugkey -keypass android \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
           fi
+          keytool -list -v -keystore debug.keystore -alias androiddebugkey -storepass android -keypass android | grep -E "SHA1:|SHA256:" || true
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
