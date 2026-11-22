@@ -1,0 +1,99 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net: deny all reads and writes by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidLanguage(lang) {
+      return lang in ['English', 'Hindi', 'Hinglish'];
+    }
+
+    function isValidTone(tone) {
+      return tone in ['Natural Human', 'Conversational', 'Professional'];
+    }
+
+    function isValidArticle(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.topicTitle is string && data.topicTitle.size() >= 1 && data.topicTitle.size() <= 300 &&
+             data.category is string && data.category.size() >= 1 && data.category.size() <= 80 &&
+             data.seoTitle is string && data.seoTitle.size() >= 1 && data.seoTitle.size() <= 300 &&
+             data.metaDescription is string && data.metaDescription.size() <= 600 &&
+             data.language is string && isValidLanguage(data.language) &&
+             data.targetWordCount is int && data.targetWordCount >= 1000 && data.targetWordCount <= 5000 &&
+             data.actualWordCount is int && data.actualWordCount >= 0 && data.actualWordCount <= 15000 &&
+             data.tone is string && isValidTone(data.tone) &&
+             data.plainTextContent is string && data.plainTextContent.size() >= 1 && data.plainTextContent.size() <= 120000 &&
+             data.bloggerHtmlContent is string && data.bloggerHtmlContent.size() >= 1 && data.bloggerHtmlContent.size() <= 250000 &&
+             data.heroImageAlt is string && data.heroImageAlt.size() <= 400 &&
+             data.heroImageCaption is string && data.heroImageCaption.size() <= 500 &&
+             (!('heroImageBase64' in data) || (data.heroImageBase64 is string && data.heroImageBase64.size() <= 220000)) &&
+             data.inlineImageAlt is string && data.inlineImageAlt.size() <= 400 &&
+             data.inlineImageCaption is string && data.inlineImageCaption.size() <= 500 &&
+             (!('inlineImageBase64' in data) || (data.inlineImageBase64 is string && data.inlineImageBase64.size() <= 220000)) &&
+             data.sources is list && data.sources.size() <= 20 && (data.sources.size() == 0 || data.sources[0] is string) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    match /users/{userId}/articles/{articleId} {
+      allow get: if isOwner(userId) && isValidId(articleId);
+      allow list: if isOwner(userId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(articleId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll([
+                         'userId', 'topicTitle', 'category', 'seoTitle', 'metaDescription',
+                         'language', 'targetWordCount', 'actualWordCount', 'tone',
+                         'plainTextContent', 'bloggerHtmlContent',
+                         'heroImageAlt', 'heroImageCaption', 'inlineImageAlt', 'inlineImageCaption',
+                         'sources', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'topicTitle', 'category', 'seoTitle', 'metaDescription',
+                         'language', 'targetWordCount', 'actualWordCount', 'tone',
+                         'plainTextContent', 'bloggerHtmlContent',
+                         'heroImageAlt', 'heroImageCaption', 'heroImageBase64',
+                         'inlineImageAlt', 'inlineImageCaption', 'inlineImageBase64',
+                         'sources', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidArticle(incoming());
+
+      allow update: if isOwner(userId) &&
+                       isValidId(articleId) &&
+                       isValidArticle(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'seoTitle', 'metaDescription', 'plainTextContent', 'bloggerHtmlContent',
+                         'actualWordCount', 'heroImageAlt', 'heroImageCaption', 'heroImageBase64',
+                         'inlineImageAlt', 'inlineImageCaption', 'inlineImageBase64', 'updatedAt'
+                       ]);
+
+      allow delete: if isOwner(userId) && isValidId(articleId);
+    }
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "entities": {
+    "BlogArticle": {
+      "title": "BlogArticle",
+      "description": "A generated long-form blog article with Blogger-compatible HTML, SEO metadata, verified sources, and optional embedded JPEG images.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID matching the parent user document."
+        },
+        "topicTitle": {
+          "type": "string",
+          "description": "Original trending topic title selected or searched by the user."
+        },
+        "category": {
+          "type": "string",
+          "description": "Trending category for the article."
+        },
+        "seoTitle": {
+          "type": "string",
+          "description": "Attractive SEO-optimized article headline."
+        },
+        "metaDescription": {
+          "type": "string",
+          "description": "Search engine meta description (recommended 140-160 characters)."
+        },
+        "language": {
+          "type": "string",
+          "enum": ["English", "Hindi", "Hinglish"],
+          "description": "Article language."
+        },
+        "targetWordCount": {
+          "type": "integer",
+          "description": "Requested target length (1500, 2000, 3000, or 4000)."
+        },
+        "actualWordCount": {
+          "type": "integer",
+          "description": "Computed word count of the generated plain text article."
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["Natural Human", "Conversational", "Professional"],
+          "description": "Editorial writing tone."
+        },
+        "plainTextContent": {
+          "type": "string",
+          "description": "Clean plain text / Markdown article content ready for copy-paste."
+        },
+        "bloggerHtmlContent": {
+          "type": "string",
+          "description": "Responsive Blogger-compatible HTML template with {{HERO_IMAGE_SRC}} and {{INLINE_IMAGE_SRC}} placeholders."
+        },
+        "heroImageAlt": {
+          "type": "string",
+          "description": "Accessible ALT description for the hero article image."
+        },
+        "heroImageCaption": {
+          "type": "string",
+          "description": "Editorial caption for the hero article image."
+        },
+        "heroImageBase64": {
+          "type": "string",
+          "description": "Optional compressed JPEG base64 payload for the hero article image."
+        },
+        "inlineImageAlt": {
+          "type": "string",
+          "description": "Accessible ALT description for the inline section image."
+        },
+        "inlineImageCaption": {
+          "type": "string",
+          "description": "Editorial caption for the inline section image."
+        },
+        "inlineImageBase64": {
+          "type": "string",
+          "description": "Optional compressed JPEG base64 payload for the inline section image."
+        },
+        "sources": {
+          "type": "array",
+          "description": "Verified web grounding source citations (title | url)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when saved (clients must submit FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when last updated (clients must submit FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "topicTitle",
+        "category",
+        "seoTitle",
+        "metaDescription",
+        "language",
+        "targetWordCount",
+        "actualWordCount",
+        "tone",
+        "plainTextContent",
+        "bloggerHtmlContent",
+        "heroImageAlt",
+        "heroImageCaption",
+        "inlineImageAlt",
+        "inlineImageCaption",
+        "sources",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/articles/{articleId}": {
+      "schema": {
+        "$ref": "#/entities/BlogArticle"
+      },
+      "description": "User-owned generated blog articles and Blogger HTML exports."
+    }
+  }
+}

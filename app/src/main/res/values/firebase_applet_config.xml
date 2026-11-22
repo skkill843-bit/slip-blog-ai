@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<resources>
+    <string name="firestore_database_id" translatable="false">ai-studio-android-slipblog-b134665c-c7e8-40a5-b235-0243eed9b4b2</string>
+    <string name="recaptcha_site_key" translatable="false">6LfgIi0uAAAAAL8qY0JpM8DoCl3k3afz5DF-8lDz</string>
+</resources>

@@ -1,0 +1,6 @@
+{
+  "name": "SLIP BLOG AI",
+  "description": "Trending Topics. Original Stories. Ready to Publish. Discover live trending topics and write human-quality long-form articles with automatic Blogger-compatible HTML design.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
